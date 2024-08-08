@@ -1,0 +1,5 @@
+gradio
+redis
+bcrypt
+langchain-community
+huggingface_hub
