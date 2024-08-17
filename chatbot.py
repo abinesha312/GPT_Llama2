@@ -1,10 +1,12 @@
-from langchain_core.prompts import PromptTemplate
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain_community.llms import CTransformers
+import os
+import torch
+from transformers import pipeline
+from langchain.prompts import PromptTemplate
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
-from huggingface_hub import hf_hub_download
 from langchain.memory import ConversationBufferMemory
+from langchain.llms import HuggingFacePipeline
 
 DB_FAISS_PATH = 'vectorstore/db_faiss'
 
@@ -25,9 +27,23 @@ def set_custom_prompt():
     )
     return prompt
 
-def chaatBot_Mode_chain(llm, prompt, db, memory):
+
+def load_llm():
+    model_path = '/home/haridoss/Models/llama-models/models/llama3/meta-llama/Meta-Llama-3-8B-Instruct'
+    
+    try:
+        hf_pipeline = pipeline('text-generation', model=model_path, device=0) 
+        generator = HuggingFacePipeline(pipeline=hf_pipeline)
+        return generator
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        raise
+
+generator = load_llm()
+
+def chaatBot_Mode_chain(generator, prompt, db, memory):
     qa_chain = ConversationalRetrievalChain.from_llm(
-        llm=llm,
+        llm=generator,
         retriever=db.as_retriever(search_kwargs={'k': 2}),
         return_source_documents=True,
         memory=memory,
@@ -35,37 +51,20 @@ def chaatBot_Mode_chain(llm, prompt, db, memory):
     )
     return qa_chain
 
-def load_llm():
-    model_path = hf_hub_download(repo_id="TheBloke/Llama-2-7B-Chat-GGML", filename="llama-2-7b-chat.ggmlv3.q8_0.bin")
-    llm = CTransformers(
-        model=model_path,
-        model_type="llama",
-        max_new_tokens=512,
-        temperature=0.5
-    )
-    return llm
-
-def qa_bot():
-    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2", model_kwargs={'device': 'cpu'})
+def handle_user_message(message, chat_history):
+    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2", model_kwargs={'device': 'cuda:0'})
     db = FAISS.load_local(DB_FAISS_PATH, embeddings, allow_dangerous_deserialization=True)
-    llm = load_llm()
     qa_prompt = set_custom_prompt()
     memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True, output_key="answer")
-    qa = chaatBot_Mode_chain(llm, qa_prompt, db, memory)
-    return qa
-
-def respond(message, chat_history):
-    qa = qa_bot()
-    response = qa.invoke({'question': message})
-    answer = response['answer']
-    sources = response.get('source_documents', [])
-    
-    if sources:
-        answer += "\n\nSources:"
-        for i, source in enumerate(sources, 1):
-            answer += f"\n{i}. {source.metadata.get('source', 'Unknown')}"
+    qa = chaatBot_Mode_chain(generator, qa_prompt, db, memory)
+    response = qa({'question': message})
+    helpful_answer_marker = "Helpful answer:\n"
+    answer_start = response['answer'].find(helpful_answer_marker)
+    if answer_start != -1:
+        helpful_answer = response['answer'][answer_start + len(helpful_answer_marker):].strip()
     else:
-        answer += "\n\nNo sources found."
+        helpful_answer = "Helpful answer not found."
+    print("Helpful Answer:", helpful_answer)
+    chat_history.append((message, helpful_answer))
     
-    chat_history.append((message, answer))
     return "", chat_history

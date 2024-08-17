@@ -6,12 +6,12 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 import time
 
-DATA_URL = 'https://studentaffairs.unt.edu/news/dungeons-dragons-and-therapy-an-adventure-begins.html'  # Replace with the actual URL
+DATA_URL = 'https://studentaffairs.unt.edu/events/index.html'  # Replace with the actual URL
 DB_FAISS_PATH = 'vectorstore/db_faiss'
 SCRAPED_DATA_FILE = 'scraped_data.txt'
 SCRAPED_URLS_FILE = 'scraped_urls.txt'
 TIME_LOG_FILE = 'time_log.txt'
-MAX_WEBSITES = 200
+MAX_WEBSITES = 50
 
 scraped_urls = set()
 
