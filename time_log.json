@@ -1,5 +1,17 @@
 {
-    "start_time": "Sat Sep  7 16:06:39 2024",
-    "end_time": "Sat Sep  7 16:07:44 2024",
-    "response_time": "64.836415 seconds"
+    "start_time": "Wed Sep 25 18:42:29 2024",
+    "end_time": "Wed Sep 25 18:44:28 2024",
+    "response_time": "119.356674 seconds",
+    "document_statistics": {
+        "min_count": {
+            "count": 0,
+            "url": "https://www.unt.edu/required-links.html"
+        },
+        "max_count": {
+            "count": 491889,
+            "url": "https://guides.library.unt.edu/spark"
+        },
+        "average_count": "7139.83",
+        "total_documents": 623
+    }
 }
